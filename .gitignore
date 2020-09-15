@@ -1,0 +1,6 @@
+venv2
+.idea
+*.pyc
+*credentials*
+*token*
+confidential_variables*
