@@ -77,6 +77,6 @@ adColonyReport = AdColonyReport(
 
 adColonyReport.pull_from_storage()
 data_freshness = adColonyReport.get_data_freshness()
-if datetime.strptime(data_freshness, "%Y-%m-%d") < datetime.now() - timedelta(days=2):
+if datetime.strptime(data_freshness, "%Y-%m-%d") < datetime.now() - timedelta(days=1):
     adColonyReport.update()
     adColonyReport.push_to_storage()

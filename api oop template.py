@@ -114,6 +114,6 @@ customReport = CustomReport(
 def update():
     customReport.pull_from_storage()
     data_freshness = customReport.get_data_freshness()
-    if datetime.strptime(data_freshness, "%Y-%m-%d") < datetime.now() - timedelta(days=2):
+    if datetime.strptime(data_freshness, "%Y-%m-%d") < datetime.now() - timedelta(days=1):
         customReport.update()
         customReport.push_to_storage()

@@ -61,6 +61,6 @@ chartboostReport = ChartboostReport(
 def update():
     chartboostReport.pull_from_storage()
     data_freshness = chartboostReport.get_data_freshness()
-    if datetime.strptime(data_freshness, "%Y-%m-%d") < datetime.now() - timedelta(days=2):
+    if datetime.strptime(data_freshness, "%Y-%m-%d") < datetime.now() - timedelta(days=1):
         chartboostReport.update()
         chartboostReport.push_to_storage()

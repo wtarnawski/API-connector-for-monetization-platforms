@@ -16,8 +16,12 @@ class IronSourceApiConnector(ApiConnectorWithTokenAuthentication):
 
 
 class IronSourceReport(Report):
-    @staticmethod
-    def extract_date(x):
+    # @staticmethod
+    def extract_date(self, x):
+        try:
+            x = datetime.strptime(date_string=x, format=self.DATE_FORMAT).strftime(self.DATE_FORMAT)
+        except Exception:
+            x = x.date().strftime(self.DATE_FORMAT)
         return x
 
     @staticmethod
@@ -75,6 +79,6 @@ ironSourceReport = IronSourceReport(
 def update():
     ironSourceReport.pull_from_storage()
     data_freshness = ironSourceReport.get_data_freshness()
-    if datetime.strptime(data_freshness, "%Y-%m-%d") < datetime.now() - timedelta(days=2):
+    if datetime.strptime(data_freshness, "%Y-%m-%d") < datetime.now() - timedelta(days=1):
         ironSourceReport.update()
         ironSourceReport.push_to_storage()

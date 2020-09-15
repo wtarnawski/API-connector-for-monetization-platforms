@@ -113,7 +113,7 @@ def update():
     mopub_min_date = datetime.strptime("2020-06-30", "%Y-%m-%d")
     data_freshness_datetime = max(data_freshness_datetime, mopub_min_date)
 
-    if data_freshness_datetime < datetime.now() - timedelta(days=2):
+    if data_freshness_datetime < datetime.now() - timedelta(days=1):
         mopubReport.update()
         mopubReport.push_to_storage()
 update()

@@ -6,11 +6,8 @@ from requests import request
 from google.cloud.exceptions import NotFound
 import pandas as pd
 import math
+from send_mail import send_mail_to_me
 
-appstore_folder_path = "C:\\appstore\\"
-destination_path = "D:\\gapi\\"
-google_reports_path = destination_path + "earnings\\"
-csv_files_location = destination_path + r"earnings\files\\"
 
 YEAR = "year"
 MONTH = "month"
@@ -66,7 +63,6 @@ class ApiConnector:
         self.api_request_other_parameters_dict = api_request_other_parameters_dict
 
     def _handle_failure(self):
-        # TODO implement sending emails to Data Analyst on failure
         raise ApiError(f"Request returned: {self.response.status_code}: {self.response.text}")
 
     def pull_report(self, params, **kwargs):
@@ -156,8 +152,11 @@ class ApiConnectorWithTokenAuthentication(ApiConnector):
 
         return self.token['token']
 
+
 class DataFreshnessError(Exception):
     pass
+
+
 class EmptyResponseReturned(Exception):
     """
     When pulled the data from the API no records were returned.
@@ -165,8 +164,10 @@ class EmptyResponseReturned(Exception):
     """
     pass
 
+
 class Report:
     DATE_FORMAT = "%Y-%m-%d"
+
     def __init__(self, data_source, lifetime_report_storage_path, api_connector, **kwargs):
         self.data_source = data_source
         self.lifetime_report_storage_path = lifetime_report_storage_path
@@ -184,7 +185,7 @@ class Report:
             self.get_last_date()  # stored in self.last_date
         except NotFound:
             self.lifetime_report = pd.DataFrame(
-                columns=[DATE, PLATFORM, GAME_NAME,REVENUE_IN_USD, REVENUE_IN_PLN, DATA_FRESHNESS]
+                columns=[DATE, PLATFORM, GAME_NAME, REVENUE_IN_USD, REVENUE_IN_PLN, DATA_FRESHNESS]
             )
         return self.lifetime_report
 
@@ -207,7 +208,7 @@ class Report:
             try:
                 if math.isnan(max_value):
                     raise DataFreshnessError
-            except TypeError: #you can't perform isnan on a str, only float; but if it's string, then it contains the '%Y-%m-%d' and that's OK
+            except TypeError:  # you can't perform isnan on a str, only float; but if it's string, then it contains the '%Y-%m-%d' and that's OK
                 pass
 
             self.data_freshness = max_value
@@ -236,7 +237,7 @@ class Report:
     def extract_revenue(x):
         raise NotImplementedError
 
-    def process_data(self):
+    def process_data(self, revenue_currency=REVENUE_IN_USD):
 
         date_string = self.api_connector.api_response_date_string
         platform_string = self.api_connector.api_response_platform_string
@@ -244,6 +245,13 @@ class Report:
         revenue_string = self.api_connector.api_response_revenue_string
         if self.new_report.size == 0:
             raise EmptyResponseReturned
+
+        if self.data_source == "Google Play":
+            # Eliminate nans from the Google Play older reports
+            self.new_report.loc[
+                (self.new_report["Transaction Type"] == "Tax") & (self.new_report["Product id"].isna()),
+                "Product id"
+            ] = "Tax"
 
         df = self.new_report.loc[:,
              [date_string,
@@ -254,15 +262,16 @@ class Report:
 
         df.loc[
         :,
-        REVENUE_IN_USD
+        revenue_currency
         ] = df.loc[
             :,
             revenue_string
             ].apply(self.extract_revenue)
 
-        df = df[
-            df[REVENUE_IN_USD] > 0
-            ]
+        if self.data_source != "Google Play":
+            df = df[
+                df[revenue_currency] > 0
+                ]
 
         df.loc[
         :,
@@ -288,21 +297,21 @@ class Report:
             game_name_string
             ].apply(self.extract_game_name)
 
-
         self.new_report = df.groupby(
             [DATE, PLATFORM, GAME_NAME],
             as_index=False
-        ).sum().loc[:, [DATE, PLATFORM, GAME_NAME, REVENUE_IN_USD]]
+        ).sum().loc[:, [DATE, PLATFORM, GAME_NAME, revenue_currency]]
         return self.new_report
 
     def compose_params(self, iter_date, end_date):
         return {
-                self.api_connector.api_request_start_date_string:
-                    iter_date.strftime(self.api_connector.DATE_FORMAT),
-                self.api_connector.api_request_end_date_string:
-                    end_date.strftime(self.api_connector.DATE_FORMAT),
-                **self.api_connector.api_request_other_parameters_dict
+            self.api_connector.api_request_start_date_string:
+                iter_date.strftime(self.api_connector.DATE_FORMAT),
+            self.api_connector.api_request_end_date_string:
+                end_date.strftime(self.api_connector.DATE_FORMAT),
+            **self.api_connector.api_request_other_parameters_dict
         }
+
     def update(self):
         # the point of this function is to iteratively update self.lifetime_report to include new days
         if self.last_date is None:

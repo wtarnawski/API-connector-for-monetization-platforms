@@ -6,26 +6,38 @@ import numpy as np
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
-
-from google_api import summarize_google_play_data
+from send_mail import send_mail_to_me
+# from google_api import summarize_google_play_data
 # from appstore_api import summarize_appstore_data
 
-# update all data sources
-from mopub_oop import update
-update()
-from applovin_oop import update
-update()
-from smaato_oop import update
-update()
-from unityads_oop import update
-update()
-from ironsource_oop import update
-update()
-from chartboost_oop import update
-update()
+import mopub_oop
+import google_oop
+import applovin_oop
+import smaato_oop
+import unityads_oop
+import ironsource_oop
+import chartboost_oop
 
+for update_function in [
+    mopub_oop.update,
+    google_oop.update,
+    applovin_oop.update,
+    smaato_oop.update,
+    unityads_oop.update,
+    ironsource_oop.update,
+    chartboost_oop.update]:
+
+    try:
+        update_function()
+    except Exception as e:
+        send_mail_to_me(
+            f'Things gone bad. {e}',
+            'Data collection system failure'
+        )
+        raise Exception
 
 from variables import *
+
 
 def merge_data(list_of_dataframes):
     df = pd.concat(
@@ -33,10 +45,10 @@ def merge_data(list_of_dataframes):
         ignore_index=True
     )
     df.loc[:,
-        YEAR
+    YEAR
     ] = pd.DatetimeIndex(df.loc[:, DATE]).year
     df.loc[:,
-        MONTH
+    MONTH
     ] = pd.DatetimeIndex(df.loc[:, DATE]).month
     aggregated_data = df.groupby(
         [YEAR, MONTH, SOURCE, GAME_NAME, PLATFORM],
@@ -73,7 +85,9 @@ def push_data_to_drive(merged_data):
     service = build('sheets', 'v4', credentials=creds)
     merged_data.fillna('', inplace=True)
     # Call the Sheets API
-    values = [merged_data.columns.values.tolist()] + [["Total",	"Total",	"Total",	"Total",	"Total","=SUBTOTAL(9,F3:F)","=SUBTOTAL(9,G3:G)"]] + merged_data.values.tolist()
+    values = [merged_data.columns.values.tolist()] \
+             + [["Total", "Total", "Total", "Total", "Total", "=SUBTOTAL(9,F3:F)", "=SUBTOTAL(9,G3:G)"]] \
+             + merged_data.values.tolist()
     body = {
         'values': values
     }
@@ -85,7 +99,7 @@ def push_data_to_drive(merged_data):
         excel_column[number] = letter
 
     sheet = service.spreadsheets()
-    sheet.values().clear(spreadsheetId=doc_id,range="A1:ZZ1000").execute()
+    sheet.values().clear(spreadsheetId=doc_id, range="A1:ZZ1000").execute()
     sheet.values().update(spreadsheetId=doc_id,
                           range=f"Data!A1:{excel_column[len(values[0])]}{len(values) + 1}",
                           valueInputOption="USER_ENTERED",
@@ -93,26 +107,31 @@ def push_data_to_drive(merged_data):
                           ).execute()
     # values = result.get('values', [])
 
-storage_client = storage.Client()
-reports_cache_bucket_name = "reports_cache"
-bucket = storage_client.bucket(reports_cache_bucket_name)
 
-all_reports = [x for x in storage_client.list_blobs(bucket) if 'lifetime' in x.name]
-temp = []
-for x in all_reports:
-    # print(x.name)
-    report = bucket.blob(x.name).download_as_string()
-    temp.append(
-        pd.read_csv(
-            BytesIO(
-                report
+try:
+    storage_client = storage.Client()
+    reports_cache_bucket_name = "reports_cache"
+    bucket = storage_client.bucket(reports_cache_bucket_name)
+
+    all_reports = [x for x in storage_client.list_blobs(bucket) if 'lifetime' in x.name]
+    temp = []
+    for x in all_reports:
+        # print(x.name)
+        report = bucket.blob(x.name).download_as_string()
+        temp.append(
+            pd.read_csv(
+                BytesIO(
+                    report
+                )
             )
         )
+    all_reports_dfs = temp
+    push_data_to_drive(
+        merged_data=merge_data(
+            all_reports_dfs
+        )
     )
-all_reports = temp
-push_data_to_drive(
-    merged_data=merge_data(
-        all_reports
-    )
-)
+except Exception as e:
+    send_mail_to_me(message=f"Pushing to google spreadsheets failed. {e}", subject='Data collection system failure')
 pass
+send_mail_to_me(message="Data up to date and sent to the report", subject='Data update finished')

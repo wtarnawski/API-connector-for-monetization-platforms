@@ -155,6 +155,6 @@ smaatoReport = SmaatoReport(
 def update():
     smaatoReport.pull_from_storage()
     data_freshness = smaatoReport.get_data_freshness()
-    if datetime.strptime(data_freshness, "%Y-%m-%d") < datetime.now() - timedelta(days=2):
+    if datetime.strptime(data_freshness, "%Y-%m-%d") < datetime.now() - timedelta(days=1):
         smaatoReport.update()
         smaatoReport.push_to_storage()

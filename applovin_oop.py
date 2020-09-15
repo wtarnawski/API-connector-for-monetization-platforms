@@ -84,6 +84,6 @@ appLovinReport = AppLovinReport(
 def update():
     appLovinReport.pull_from_storage()
     data_freshness = appLovinReport.get_data_freshness()
-    if datetime.strptime(data_freshness, "%Y-%m-%d") < datetime.now() - timedelta(days=2):
+    if datetime.strptime(data_freshness, "%Y-%m-%d") < datetime.now() - timedelta(days=1):
         appLovinReport.update()
         appLovinReport.push_to_storage()
