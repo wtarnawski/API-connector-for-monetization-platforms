@@ -19,24 +19,7 @@ import ironsource_oop
 import chartboost_oop
 import adcolony_oop
 
-for update_function in [
-        mopub_oop.update,
-        google_oop.update,
-        applovin_oop.update,
-        smaato_oop.update,
-        unityads_oop.update,
-        ironsource_oop.update,
-        chartboost_oop.update,
-        adcolony_oop.update]:
 
-    try:
-        update_function()
-    except Exception as e:
-        send_mail_to_me(
-            f'Things gone bad. {e}',
-            'Data collection system failure'
-        )
-        raise Exception
 
 from variables import *
 
@@ -109,31 +92,49 @@ def push_data_to_drive(merged_data):
                           ).execute()
     # values = result.get('values', [])
 
+def run():
+    for update_function in [
+            mopub_oop.update,
+            google_oop.update,
+            applovin_oop.update,
+            smaato_oop.update,
+            unityads_oop.update,
+            ironsource_oop.update,
+            chartboost_oop.update,
+            adcolony_oop.update]:
 
-try:
-    storage_client = storage.Client()
-    reports_cache_bucket_name = "reports_cache"
-    bucket = storage_client.bucket(reports_cache_bucket_name)
+        try:
+            update_function()
+        except Exception as e:
+            send_mail_to_me(
+                f'Things gone bad. {e}',
+                'Data collection system failure'
+            )
+            raise Exception
+    try:
+        storage_client = storage.Client()
+        reports_cache_bucket_name = "reports_cache"
+        bucket = storage_client.bucket(reports_cache_bucket_name)
 
-    all_reports = [x for x in storage_client.list_blobs(bucket) if 'lifetime' in x.name]
-    temp = []
-    for x in all_reports:
-        # print(x.name)
-        report = bucket.blob(x.name).download_as_string()
-        temp.append(
-            pd.read_csv(
-                BytesIO(
-                    report
+        all_reports = [x for x in storage_client.list_blobs(bucket) if 'lifetime' in x.name]
+        temp = []
+        for x in all_reports:
+            # print(x.name)
+            report = bucket.blob(x.name).download_as_string()
+            temp.append(
+                pd.read_csv(
+                    BytesIO(
+                        report
+                    )
                 )
             )
+        all_reports_dfs = temp
+        push_data_to_drive(
+            merged_data=merge_data(
+                all_reports_dfs
+            )
         )
-    all_reports_dfs = temp
-    push_data_to_drive(
-        merged_data=merge_data(
-            all_reports_dfs
-        )
-    )
-except Exception as e:
-    send_mail_to_me(message=f"Pushing to google spreadsheets failed. {e}", subject='Data collection system failure')
-pass
-send_mail_to_me(message="Data up to date and sent to the report", subject='Data update finished')
+        send_mail_to_me(message="Data up to date and sent to the report", subject='Data update finished')
+    except Exception as e:
+        send_mail_to_me(message=f"Pushing to google spreadsheets failed. {e}", subject='Data collection system failure')
+    pass
