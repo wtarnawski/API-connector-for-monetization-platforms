@@ -17,15 +17,17 @@ import smaato_oop
 import unityads_oop
 import ironsource_oop
 import chartboost_oop
+import adcolony_oop
 
 for update_function in [
-    mopub_oop.update,
-    google_oop.update,
-    applovin_oop.update,
-    smaato_oop.update,
-    unityads_oop.update,
-    ironsource_oop.update,
-    chartboost_oop.update]:
+        mopub_oop.update,
+        google_oop.update,
+        applovin_oop.update,
+        smaato_oop.update,
+        unityads_oop.update,
+        ironsource_oop.update,
+        chartboost_oop.update,
+        adcolony_oop.update]:
 
     try:
         update_function()
