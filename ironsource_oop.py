@@ -19,7 +19,7 @@ class IronSourceReport(Report):
     # @staticmethod
     def extract_date(self, x):
         try:
-            x = datetime.strptime(date_string=x, format=self.DATE_FORMAT).strftime(self.DATE_FORMAT)
+            x = datetime.strptime(date_string=x, format='%Y-%m-%d %H:%M:%S').strftime(self.DATE_FORMAT)
         except Exception:
             x = x.date().strftime(self.DATE_FORMAT)
         return x

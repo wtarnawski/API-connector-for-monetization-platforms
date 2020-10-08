@@ -61,9 +61,13 @@ class ApiConnector:
         self.api_request_start_date_string = api_request_start_date_string
         self.api_request_end_date_string = api_request_end_date_string
         self.api_request_other_parameters_dict = api_request_other_parameters_dict
+        self.response = None
 
     def _handle_failure(self):
-        raise ApiError(f"Request returned: {self.response.status_code}: {self.response.text}")
+        if self.response:
+            raise ApiError(f"Request returned: {self.response.status_code}: {self.response.text}")
+        else:
+            raise ApiError(f"No response was received.")
 
     def pull_report(self, params, **kwargs):
         self.response = request(
@@ -113,7 +117,7 @@ class ApiConnectorWithTokenAuthentication(ApiConnector):
             headers=self.auth_request_headers
         )
         if str(self.auth_response.status_code)[0] != "2":
-            self._handle_failure(self)
+            self._handle_failure()
         self.token = {
             "token": self.extract_token_from_auth_response(self.auth_response),
             TOKEN_EXPIRATION_DATE: (
@@ -176,6 +180,11 @@ class Report:
         self.new_report = None
         self.api_connector = api_connector
         self.data_freshness = None
+
+    def __repr__(self):
+        return self.data_source
+    def __str__(self):
+        return self.data_source
 
     def pull_from_storage(self):
         blob = bucket.blob(self.lifetime_report_storage_path)
