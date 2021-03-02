@@ -1,4 +1,6 @@
 from __future__ import print_function
+
+import os
 from datetime import datetime, timedelta
 from io import BytesIO, StringIO
 from google.cloud import storage
@@ -81,6 +83,25 @@ class ApiConnector:
         if self.data_format == "JSON":
             return pd.read_json(StringIO(self.response.text))
         elif self.data_format == "CSV":
+            if "mopub" in self.stats_url:
+                tfile= r"C:\appstore\temp"
+                try:
+                    os.remove(tfile)
+                except FileNotFoundError:
+                    pass
+
+                with open(tfile, "a") as tempwrite:
+
+                    tempwrite.write(self.response.text.encode('ascii', 'ignore').decode("utf-8"))
+                cols = [
+                    self.api_response_app_string,
+                    self.api_response_date_string,
+                    self.api_response_platform_string,
+                    self.api_response_revenue_string,
+                    'Adgroup Type'
+                ]
+                df = pd.read_csv(tfile, usecols=cols)
+                return df
             return pd.read_csv(StringIO(self.response.text))
 
 
@@ -354,5 +375,6 @@ class Report:
                 as_index=False
             ).sum()
             self.lifetime_report = pd.concat([self.lifetime_report, self.new_report])
+            self.new_report = None
 
         self.lifetime_report.loc[:, DATA_FRESHNESS] = datetime.now().date()

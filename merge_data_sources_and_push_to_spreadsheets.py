@@ -91,26 +91,26 @@ def push_data_to_drive(merged_data):
                           body=body
                           ).execute()
     # values = result.get('values', [])
-
-for report in [
-        mopub_oop,
-        google_oop,
-        applovin_oop,
-        smaato_oop,
-        unityads_oop,
-        ironsource_oop,
-        chartboost_oop,
-        adcolony_oop]:
-
-    try:
-        report.update()
-    except Exception as e:
-        send_mail_to_me(
-            f'Things gone bad. {report}{e}\n {traceback.format_exc()}',
-            'Data collection system failure'
-        )
-        continue
 try:
+    for report in [
+            mopub_oop,
+            google_oop,
+            applovin_oop,
+            smaato_oop,
+            unityads_oop,
+            ironsource_oop,
+            chartboost_oop,
+            adcolony_oop]:
+
+        try:
+            report.update()
+        except Exception as e:
+            send_mail_to_me(
+                f'Things gone bad. {report}{e}\n {traceback.format_exc()}',
+                'Data collection system failure'
+            )
+            continue
+
     storage_client = storage.Client()
     reports_cache_bucket_name = "reports_cache"
     bucket = storage_client.bucket(reports_cache_bucket_name)

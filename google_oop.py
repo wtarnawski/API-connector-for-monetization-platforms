@@ -58,8 +58,10 @@ class GooglePlayReport(Report):
     def pull_publisher_revenue(self, date):
         temp = None
         date = date.strftime("%Y%m")
-        for blob in storage_client.list_blobs(bucket, prefix='earnings'):
+        blobs_list = storage_client.list_blobs(bucket, prefix='earnings')
+        for blob in blobs_list:
             if date in self.extract_date_from_blob_name(blob):
+                print(date)
                 temp = bucket.blob(blob.name).download_as_string()
                 break
         if temp is None:
@@ -90,7 +92,7 @@ class GooglePlayReport(Report):
             end_date = min(iter_date + self.api_connector.max_date_span, day_before_today)
             # params is always like {start: ..., end:..., dimension_breakdown:..., metrics:...}
             iter_date += self.api_connector.max_date_span
-            if iter_date.year == datetime.now().year and iter_date.month == datetime.now().month:
+            if iter_date.year == datetime.now().year and iter_date.month >= datetime.now().month:
                 break
             self.new_report = self.pull_publisher_revenue(date=iter_date)
             try:
@@ -102,7 +104,7 @@ class GooglePlayReport(Report):
         self.lifetime_report.loc[:, DATA_FRESHNESS] = datetime.now().date()
 
 google_play_data = {
-    "max_date_span": 29,
+    "max_date_span": 30.43,
     "data_format": "CSV",
 
     "api_response_date_string": 'Transaction Date',

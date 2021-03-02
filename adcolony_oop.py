@@ -9,7 +9,7 @@ class AdColonyApiConnector(ApiConnector):
 
 
 class AdColonyReport(Report):
-
+    DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
     def extract_date(self, x):
         return x
 
@@ -81,3 +81,6 @@ def update():
     if datetime.strptime(data_freshness, "%Y-%m-%d") < datetime.now() - timedelta(days=1):
         adColonyReport.update()
         adColonyReport.push_to_storage()
+
+if __name__ == "__main__":
+    update()

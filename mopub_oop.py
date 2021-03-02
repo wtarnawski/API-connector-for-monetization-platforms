@@ -1,7 +1,9 @@
 from variables import *
 from datetime import datetime, timedelta
 from confidential_variables import *
+import gc
 
+gc.collect()
 
 # if the report gets fucked up, you can find applovin_historic.csv on my Google Drive
 # upload it as the lifetime report to Storage and run this script to update it
@@ -43,7 +45,7 @@ class MopubReport(Report):
         return x
 
     def process_data(self):
-        self.new_report = self.new_report[self.new_report["Line Item Type"] != "Advanced Bidding Network"]
+        self.new_report = self.new_report[self.new_report["Adgroup Type"] != "Advanced Bidding Network"]
         return super().process_data()
 
     def get_last_date(self):
@@ -60,8 +62,8 @@ mopub_data = {
 
     "api_response_date_string": "Day",
     "api_response_platform_string": "OS",
-    "api_response_app_string": "App",
-    "api_response_revenue_string": "Revenue",
+    "api_response_app_string": "App Name",
+    "api_response_revenue_string": "Adserver Revenue",
 
     "api_request_start_date_string": "date",
     "api_request_end_date_string": "delete_me",  # Mopub accepts only one day requests
@@ -116,4 +118,4 @@ def update():
     if data_freshness_datetime < datetime.now() - timedelta(days=1):
         mopubReport.update()
         mopubReport.push_to_storage()
-update()
+# update()
